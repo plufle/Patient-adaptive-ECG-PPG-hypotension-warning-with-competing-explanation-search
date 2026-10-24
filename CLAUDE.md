@@ -897,7 +897,8 @@ If Drive fills up: lower the cohort size before lowering data quality, and recor
 - Every table and figure is regenerable from a script plus a config. No hand-edited numbers.
 - **Never fabricate results, citations or dataset details.** Unverified items are marked `TODO(verify)`.
 - Data governance: never commit, upload or print raw patient-level data from credentialed sources. Respect each dataset's licence.
-- **Git:** Claude may commit and push to the project's private GitHub repo. **Never** add Co-Authored-By or any other attribution line to commits or PRs.
+- **Notebooks are committed without outputs.** Running a notebook in VS Code saves its outputs into the file, so check `git diff` and strip outputs before committing. Never use `git commit -a` blindly on notebooks.
+- **Git:** Claude may commit and push to the project's GitHub repo. **Never** add Co-Authored-By or any other attribution line to commits or PRs.
 - **Working style:** Claude builds and explains in simple words; the owner reviews. Stop at every phase checkpoint and gate (§8) for review.
 
 ---
