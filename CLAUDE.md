@@ -940,7 +940,7 @@ If Drive fills up: lower the cohort size before lowering data quality, and recor
 - 2026-10-24: v2.1. Second review note added the contribution direction: Competing-Explanation Search (main), Ambiguity-Aware Training (training component), anchored adaptation and measurement selection (alternatives). New prior work added to §1.5 (unverified).
 - 2026-10-24: owner adopted v2.1. The owner asked **not to start implementation yet**. Open questions are being collected (§12).
 - 2026-10-24: owner answered the §12 questions. Implementation phases P0–P9 planned (§8). Implementation **not started**.
-- 2026-10-24: **P0 built**: package skeleton, utils (paths, config, seed, log, run), `configs/base.yaml`, Colab setup notebook, README, tests. 14 tests pass locally (Python 3.13). Pushed to GitHub.
+- 2026-10-24: **P0 built**: package skeleton, utils (paths, config, seed, log, run), `configs/base.yaml`, Colab setup notebook, README, tests. 14 tests pass locally (Python 3.13). Committed locally. The first push needs the owner to log in to GitHub once in their own terminal.
   - Still open: the Colab notebook has not yet been run on a Colab runtime (owner to run it).
 - **Next:** owner reviews P0 and runs `00_setup_colab.ipynb` on Colab. Then P1 (simulator). Then M0 (related-work comparison, repo skeleton, Colab setup) and M1 (simulator + identifiability study) start in parallel.
 
