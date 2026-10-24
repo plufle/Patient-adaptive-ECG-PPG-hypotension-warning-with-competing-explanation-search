@@ -533,13 +533,16 @@ paper/
 ## 6. Compute and environment
 
 - **Runtime:** Google Colab GPU (T4), used through the Colab VS Code extension. Notebooks are edited locally and run on the Colab kernel.
-- **Local files are not visible to the Colab runtime.** All paths go through `dtwin.utils.io`:
-  - on Colab: `/content/drive/MyDrive/dtwin/...`;
-  - locally: `./data` and `./runs`.
-  - Copy data to `/content/` before heavy reads.
+- **Storage model: plan B (adopted 2026-10-24).** Google Drive **cannot** be mounted through the Colab VS Code extension (`drive.mount` fails with a credential-propagation `FAILED_PRECONDITION` error). So:
+  - **The local PC is the permanent home** of all data and results: `E:\projects\devi\paper\data` and `runs`, with ~726 GB free. There is no 15 GB limit.
+  - **CPU work runs locally:** VitalDB download, preprocessing, labels, GBM, CES, evaluation.
+  - **Colab is GPU compute only.** Its disk (`/content/dtwin`) is **temporary** (`Paths.persistent == False`).
+  - Inputs reach Colab either generated there (simulated data, most GPU training) or via VS Code **"Upload to Colab"** (right-click in the Explorer).
+  - The way to bring trained models back from Colab to the PC is still to be decided in P6.
+- **All paths go through `dtwin.utils.io`:** locally the repo's `data/` and `runs/`; on Colab `/content/dtwin`; `DTWIN_ROOT` overrides both.
 - **Code delivery:** the public GitHub repo (§12). `00_setup_colab.ipynb` clones or pulls it and runs `pip install -e .[extras]`. Logic lives in `src/dtwin/`.
 - **Local environment:** `.venv` in the repo (gitignored). Create it with `python -m venv .venv` and `.venv\Scripts\python -m pip install -e ".[dev]"`.
-- **Session limits:** checkpoint to Drive every N steps and resume automatically. Long jobs run in chunks.
+- **Session limits:** Colab GPU jobs checkpoint every N steps and resume automatically. Long jobs run in chunks. Where the checkpoints persist is decided in P6, together with the transfer of results back to the PC.
 - **Packages:** `numpy`, `scipy`, `pandas`/`polars`, `torch`, `torchdiffeq`, `sbi`, `neurokit2`, `vitaldb`, `wfdb`, `scikit-learn`, `lightgbm`, `matplotlib`, `pyyaml`. Pin versions once the environment works.
 - **Reproducibility:** each run saves its `run_id`, resolved config, git hash, seed and split-file hashes.
 
@@ -651,11 +654,10 @@ Any later change is recorded in §14 together with the reason, and the test resu
 
 | Place | Hardware | Used for |
 |---|---|---|
-| **Local** (Windows, Python 3.13, CPU, no NVIDIA GPU) | CPU | Package code, tests, simulator development, small analyses |
-| **Colab-CPU** (free tier) | CPU | VitalDB downloads and preprocessing (data lands on Drive) |
-| **Colab-GPU** (free tier, T4) | GPU | Neural training only (NPE, residual, neural comparators, AAT) |
+| **Local** (Windows, Python 3.13, CPU, no NVIDIA GPU; E: ~726 GB free) | CPU | **Permanent storage of all data and results**; package code, tests, simulator, VitalDB download and preprocessing, GBM, CES, evaluation |
+| **Colab-GPU** (free tier, T4) | GPU | Neural training only (NPE, residual, neural comparators, AAT). Temporary disk |
 
-**Python versions:** code must run on both local Python 3.13 and Colab's Python. Pin dependencies that work on both, and check `torch` / `sbi` wheels for each.
+**Python versions:** local and Colab both run Python 3.13 (Colab 3.13.16 confirmed). Code must keep working on both. Pin dependencies that work on both, and check `torch` / `sbi` wheels for each.
 
 **Size tags:** S ≈ 1–2 sessions, M ≈ 3–6 sessions, L ≈ 6+ sessions.
 
@@ -667,13 +669,13 @@ Any later change is recorded in §14 together with the reason, and the test resu
 - `git init`, `.gitignore` (data, runs, checkpoints, `.ipynb_checkpoints`).
 - `pyproject.toml` (package `dtwin`, `src/` layout). Dependency groups are optional extras (`sim`, `signal`, `ml`, `dev`, `all`) instead of a separate Colab requirements file. Exact version pins come once the P1 environment works on both machines.
 - `dtwin/utils`:
-  - `io.py`: path resolver for local vs Colab/Drive;
+  - `io.py`: path resolver for local (persistent) vs Colab (temporary);
   - `seed.py`;
   - `config.py`: YAML loading, merge, and a resolved-config dump;
   - `log.py` (named so it does not shadow the stdlib `logging`);
   - `run.py`: run_id plus saving the git hash and config.
 - `configs/base.yaml` holding every [PROVISIONAL] value from this file.
-- `notebooks/00_setup_colab.ipynb`: clones or pulls the private GitHub repo (read-only token entered at runtime, never saved in the notebook), then runs `pip install -e .` and mounts Drive.
+- `notebooks/00_setup_colab.ipynb`: shows the runtime, clones or pulls the public GitHub repo, runs `pip install -e .[extras]` and runs the tests. There is no Drive (plan B, §6).
 - `pytest` setup and a `tests/test_smoke.py`.
 
 **Done when**
@@ -718,12 +720,12 @@ Any later change is recorded in §14 together with the reason, and the test resu
 
 > P2 does not need any patient data, so it can run while P3 downloads.
 
-### P3 — VitalDB pilot pipeline, gate G1 (Colab-CPU, then local; L)
+### P3 — VitalDB pilot pipeline, gate G1 (Local; L)
 
 **Goal:** a clean, causal, audited data pipeline on 50 subjects.
 
 **Tasks**
-- `data/vitaldb.py`: case discovery, `subjectid` mapping, track-name verification, chunked download that can resume, continuous storage format (§3.8) on Drive.
+- `data/vitaldb.py`: case discovery, `subjectid` mapping, track-name verification, chunked download that can resume, continuous storage format (§3.8) on the local disk.
 - `preprocess/`: causal filters, SQI, fiducials at the native rate (R-peak, PPG foot/peak), observation-availability flags.
 - `labels/`: ABP artifact detection, MAP per beat, events (MAP < 65 for ≥ 60 s), recovery, merging, censoring, eligibility.
 - `data/report.py`: the pilot audit (G1 list in §7.1), including eligible-time fraction, events per patient-hour, the share of events that leave ≥ 10–15 min of eligible history before onset, storage per case, any CO/SV tracks, and a rejected-data audit.
@@ -744,7 +746,7 @@ Any later change is recorded in §14 together with the reason, and the test resu
 
 **Done when:** a dummy model runs end-to-end on pilot data and the metric tests pass.
 
-### P5 — Full cohort and strong simple comparator, gate G2 (Colab-CPU + local; M)
+### P5 — Full cohort and strong simple comparator, gate G2 (Local; M)
 
 **Goal:** prove there is a real warning problem before building the complex parts.
 
@@ -764,7 +766,8 @@ Any later change is recorded in §14 together with the reason, and the test resu
 **Goal:** NPE over θ_red with nuisances; well calibrated on simulations, sensible on real data.
 
 **Tasks**
-- `inference/embedding.py`, `npe.py` (with `sbi`), and a training script that checkpoints to Drive every N steps and resumes.
+- `inference/embedding.py`, `npe.py` (with `sbi`), and a training script that checkpoints every N steps and resumes.
+- **Decide here:** how checkpoints and trained models get back to the PC from Colab's temporary disk.
 - SBC, coverage, contraction (U1); posterior predictive checks on real VitalDB windows (train subjects).
 - Sim-to-real check: compare distributions of real vs simulated summary features. Fine-tune only on train subjects.
 
@@ -812,18 +815,18 @@ P0 → P1 → P2 (G-ID) ─────────────┐
  └──→ P3 (G1) → P4 → P5 (G2) ────┴→ P6 → P7 (G3) → P8 → P9 (G-LOCK)
 ```
 
-P1/P2 (local, simulation only) and P3 (Colab downloads) can run in parallel.
+P1/P2 (simulation only) and P3 (VitalDB downloads) can run in parallel. Both run locally.
 
-### Storage budget (free Drive, 15 GB)
+### Storage (local disk, plan B)
 
-| Item | Budget |
+| Item | Size |
 |---|---|
-| ECG + PPG continuous at 125 Hz float16 (+ masks) | ~7 MB per 4-hour case |
-| ABP | Per-beat SBP/DBP/MAP for all cases; the full ABP waveform for a ≤ 200-case subset (physics validation) |
-| Cohort | ~1,000 cases ≈ 8–9 GB including features and labels. Adjust after the pilot |
-| Runs/checkpoints | ≤ 3 GB; prune old runs |
+| ECG + PPG + ABP continuous at 125 Hz float16 (+ masks) | ~11 MB per 4-hour case |
+| Fiducials, features, labels | Small per case (measure on the pilot) |
+| Cohort | Set by **event yield and precision** on the pilot, not by storage. Even all ~6,000 VitalDB cases (~65 GB) fit on E: |
+| Runs/checkpoints | Prune old runs occasionally |
 
-If Drive fills up: lower the cohort size before lowering data quality, and record the change in §14.
+Keep raw VitalDB downloads too, so preprocessing can be rerun without downloading again.
 
 ### Old milestone map (kept for reference; superseded by P0–P9)
 
@@ -951,7 +954,8 @@ If Drive fills up: lower the cohort size before lowering data quality, and recor
 |---|---|---|---|
 | 2026-10-24 | Core modalities ECG + PPG; ABP for targets and adjudication only; imaging deferred | Adopted (v1) | Feasibility with public data |
 | 2026-10-24 | VitalDB as primary dataset | Adopted (v1) | Open; long multimodal recordings; frequent hypotension |
-| 2026-10-24 | Colab GPU via VS Code extension; installable package; data on Drive | Adopted (v1) | No local GPU |
+| 2026-10-24 | Colab GPU via VS Code extension; installable package; data on Drive | Adopted (v1); **storage superseded by plan B** | No local GPU |
+| 2026-10-24 | **Plan B:** local PC is permanent storage and does all CPU work; Colab is temporary GPU compute only | Adopted (owner) | `drive.mount` fails through the VS Code extension; E: has ~726 GB free; Claude can inspect local data and results directly |
 | 2026-10-24 | Narrow the first study to hypotension warning plus explanation reliability; digital twin as long-term vision | Adopted (v2) | Prior-work overlap; intraoperative data cannot establish normal physiology |
 | 2026-10-24 | Split by `subjectid`; PulseDB provenance exclusion; four-way split with a calibration set | Adopted (v2) | Leakage control |
 | 2026-10-24 | Identifiability gate before SBI; reduced θ_red; no physiological interpretation of non-identifiable parameters | Adopted (v2) | WK3 SV/R/C/Z_c scaling symmetry (derivation in §4.4, checked) |

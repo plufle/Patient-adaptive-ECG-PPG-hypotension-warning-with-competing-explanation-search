@@ -22,7 +22,7 @@ pytest
 
 **Google Colab**
 
-Open [notebooks/00_setup_colab.ipynb](notebooks/00_setup_colab.ipynb) on a Colab runtime and run all cells. The notebook mounts Google Drive, where data and runs are stored under `MyDrive/dtwin/`, clones this repository and runs the tests.
+Colab is used for GPU compute only. Data and results live on the local machine, because Colab's disk is temporary. Open [notebooks/00_setup_colab.ipynb](notebooks/00_setup_colab.ipynb) on a Colab runtime and run all cells: it clones this repository, installs it and runs the tests.
 
 ## Layout
 
@@ -32,7 +32,7 @@ Open [notebooks/00_setup_colab.ipynb](notebooks/00_setup_colab.ipynb) on a Colab
 | `configs/` | YAML configs. `base.yaml` holds every provisional setting |
 | `notebooks/` | Thin Colab notebooks that call the package |
 | `tests/` | `pytest` suite |
-| `data/`, `runs/` | Local data and run outputs (gitignored; on Colab they live on Drive) |
+| `data/`, `runs/` | Local data and run outputs (gitignored) |
 
 ## Data
 

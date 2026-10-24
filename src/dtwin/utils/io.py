@@ -3,15 +3,16 @@
 Package code must never hardcode ``E:\\``, ``C:\\`` or ``/content`` paths; it asks
 ``get_paths()`` instead.
 
+Storage model ("plan B", CLAUDE.md §6): the **local PC is the persistent home**
+of all data and results. Colab is used for GPU compute only, and its disk is
+temporary. Google Drive cannot be mounted through the Colab VS Code extension.
+
 Resolution order for the storage root:
 
 1. ``DTWIN_ROOT`` environment variable, if set.
-2. On Colab: ``/content/drive/MyDrive/dtwin`` (Google Drive must be mounted).
+2. On Colab: ``/content/dtwin``. This is **temporary**: it is wiped when the
+   runtime disconnects. Anything worth keeping must be brought back to the PC.
 3. Locally: the repository root (``data/`` and ``runs/`` are gitignored).
-
-On Colab, ``scratch`` points to fast local disk (``/content/dtwin_scratch``),
-which is wiped when the runtime disconnects. Copy heavy inputs there before
-training; keep anything worth saving under ``root``.
 """
 
 from __future__ import annotations
@@ -21,8 +22,7 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
-COLAB_DRIVE_ROOT = Path("/content/drive/MyDrive/dtwin")
-COLAB_SCRATCH = Path("/content/dtwin_scratch")
+COLAB_ROOT = Path("/content/dtwin")
 
 
 def on_colab() -> bool:
@@ -50,6 +50,7 @@ class Paths:
 
     root: Path
     scratch: Path
+    persistent: bool  # False on Colab: everything here is lost on disconnect
 
     @property
     def data(self) -> Path:
@@ -83,27 +84,17 @@ def get_paths(create: bool = False) -> Paths:
 
     Args:
         create: if True, create the directories.
-
-    Raises:
-        RuntimeError: on Colab when Google Drive is not mounted and no
-            ``DTWIN_ROOT`` override is set (otherwise results would silently be
-            written to disk that is wiped on disconnect).
     """
     env_root = os.environ.get("DTWIN_ROOT")
     if env_root:
         root = Path(env_root)
-        scratch = Path(os.environ.get("DTWIN_SCRATCH", root / "scratch"))
+        persistent = os.environ.get("DTWIN_PERSISTENT", "0" if on_colab() else "1") == "1"
     elif on_colab():
-        if not COLAB_DRIVE_ROOT.parent.exists():
-            raise RuntimeError(
-                "Google Drive is not mounted. Run drive.mount('/content/drive'), "
-                "or set DTWIN_ROOT to a non-persistent location explicitly."
-            )
-        root = COLAB_DRIVE_ROOT
-        scratch = COLAB_SCRATCH
+        root = COLAB_ROOT
+        persistent = False
     else:
         root = find_repo_root()
-        scratch = root / "data" / "scratch"
+        persistent = True
 
-    paths = Paths(root=root, scratch=scratch)
+    paths = Paths(root=root, scratch=root / "data" / "scratch", persistent=persistent)
     return paths.ensure() if create else paths
