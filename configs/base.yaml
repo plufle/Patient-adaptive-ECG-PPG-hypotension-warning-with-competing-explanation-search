@@ -1,0 +1,50 @@
+# Base configuration. Every [PROVISIONAL] value from CLAUDE.md lives here.
+# Experiment configs use `extends: base.yaml` and override only what changes.
+# Provisional values are tuned on train/tune/calibration subjects only and
+# frozen at G-LOCK (CLAUDE.md §7.6). Do not hardcode any of these in code.
+
+seed: 20261024
+
+signal:
+  fs_hz: 125                 # common sampling rate after resampling (fiducials use native rate)
+  window_s: 10               # window length -> 1250 samples
+  stride_s: 5                # evaluation stride
+  max_interp_gap_s: 2        # never interpolate across longer gaps; mask instead
+
+events:                      # hypotension (CLAUDE.md §3.4); cite sources in configs/events.yaml (P3)
+  map_threshold_mmhg: 65
+  min_duration_s: 60
+  gap_max_s: 10              # [PROVISIONAL] longer ABP gaps -> censored, not negative
+  recovery_s: 60             # [PROVISIONAL] MAP >= threshold this long ends an event
+  merge_s: 60                # [PROVISIONAL] events closer than this are merged
+  post_event_refractory_s: 600   # [PROVISIONAL] ineligible period after an event ends
+
+task:
+  warn_interval_min: [10, 15]      # T-warn: onset in [t+10, t+15] min (primary) [PROVISIONAL]
+  predict_horizons_min: [5, 10, 15]
+
+alerts:                      # episode-level alert policy (CLAUDE.md §3.4, §7.5)
+  persist_s: 30              # [PROVISIONAL] risk must stay above threshold this long
+  merge_gap_s: 60            # [PROVISIONAL] episodes closer than this are merged
+  refractory_s: 300          # [PROVISIONAL] no new episode this soon after one starts
+  false_alert_match_min: 15  # an episode is false if no onset within (0, 15] min
+  target_false_alerts_per_hour: 1.0   # [PROVISIONAL] chosen on calibration subjects
+
+history:
+  h_min: 10                  # [PROVISIONAL] risk-head history length
+
+reference:                   # patient reference state (CLAUDE.md §4.6)
+  ref_minutes: 15            # [PROVISIONAL] first usable ECG-PPG minutes, no ABP
+  halflife_min: 60           # [PROVISIONAL] slow EMA update
+  freeze_z: 3.0              # [PROVISIONAL] freeze updates above this deviation
+
+explanation:                 # competing-explanation search (CLAUDE.md §4.9)
+  history_min: 5             # [PROVISIONAL] H_e
+  alpha_e: 0.05              # [PROVISIONAL] rejection level for competitors
+  matched_availability: [0.5, 0.7]
+
+splits:                      # by subjectid (CLAUDE.md §3.5)
+  ratios: {train: 0.6, tune: 0.1, calibration: 0.1, test: 0.2}
+
+pilot:
+  n_cases: 50

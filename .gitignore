@@ -1,0 +1,34 @@
+# Data and outputs — never commit patient data or run artifacts
+data/
+runs/
+checkpoints/
+*.npz
+*.parquet
+*.vital
+*.mat
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Editors / OS
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Secrets
+.env
+*.token
