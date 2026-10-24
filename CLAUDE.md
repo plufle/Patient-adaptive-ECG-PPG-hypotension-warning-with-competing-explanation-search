@@ -945,8 +945,12 @@ Keep raw VitalDB downloads too, so preprocessing can be rerun without downloadin
 - 2026-10-24: owner adopted v2.1. The owner asked **not to start implementation yet**. Open questions are being collected (§12).
 - 2026-10-24: owner answered the §12 questions. Implementation phases P0–P9 planned (§8). Implementation **not started**.
 - 2026-10-24: **P0 built**: package skeleton, utils (paths, config, seed, log, run), `configs/base.yaml`, Colab setup notebook, README, tests. 14 tests pass locally (Python 3.13). Committed locally. The first push needs the owner to log in to GitHub once in their own terminal.
-  - Still open: the Colab notebook has not yet been run on a Colab runtime (owner to run it).
-- **Next:** owner reviews P0 and runs `00_setup_colab.ipynb` on Colab. Then P1 (simulator). Then M0 (related-work comparison, repo skeleton, Colab setup) and M1 (simulator + identifiability study) start in parallel.
+- 2026-10-24: **P0 complete.**
+  - Verified on Colab (Python 3.13.16, CPU runtime): clone, install and all 15 tests pass; storage root `/content/dtwin` (temporary).
+  - Plan B storage adopted (§6).
+  - Local pre-commit hook added, refusing notebooks with outputs. Install it per clone with `python scripts/install_hooks.py`; strip outputs with `python scripts/check_notebooks_clean.py --strip <nb>`.
+  - Pushing: Claude's terminal cannot authenticate to GitHub (no stored credentials; VS Code keeps its own login). The **owner pushes via VS Code Sync** after each phase.
+- **Next:** P1 (simulator and observation model), on the owner's go-ahead. Then M0 (related-work comparison, repo skeleton, Colab setup) and M1 (simulator + identifiability study) start in parallel.
 
 ## 14. Decision log
 
